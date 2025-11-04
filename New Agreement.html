@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Agreement Tracker Dashboard</title>
+  <style>
+    :root{
+      --bg-1: #667eea;
+      --bg-2: #764ba2;
+      --accent: #667eea;
+      --muted: #6c757d;
+      --card-shadow: 0 12px 30px rgba(102,126,234,0.12);
+      --radius: 12px;
+    }
+    *{box-sizing:border-box}
+    body{
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin:0;
+      padding:20px;
+      background: linear-gradient(135deg,#f3f6ff 0%,#eef2ff 100%);
+      color:#222;
+    }
+    .container{
+      max-width:1300px;
+      margin:0 auto;
+      background:#fff;
+      border-radius:14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+      overflow:hidden;
+    }
+    .header{
+      padding:22px;
+      background: linear-gradient(135deg,var(--bg-1),var(--bg-2));
+      color:white;
+    }
+    .header h1{margin:0;font-size:1.4rem}
+    .header p{margin:6px 0 0; opacity:0.95}
+
+    .tabs{
+      display:flex;
+      background:#fbfcfd;
+      border-bottom:1px solid #eef2f7;
+    }
+    .tab-button{
+      flex:1;
+      padding:12px 16px;
+      border:0;
+      background:transparent;
+      cursor:pointer;
+      font-weight:700;
+      color:var(--muted);
+      transition:all .15s;
+    }
+    .tab-button:hover{ background:rgba(102,126,234,0.03); }
+    .tab-button.active{
+      color:var(--accent);
+      background:linear-gradient(180deg, rgba(102,126,234,0.06), transparent);
+      border-bottom:3px solid var(--accent);
+    }
+
+    .tab-content{display:none;padding:18px}
+    .tab-content.active{display:block}
+
+    /* STAT CARDS */
+    .stats-grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit,minmax(160px,1fr));
+      gap:14px;
+      margin-bottom:16px;
+    }
+    .stat-card{
+      padding:14px;
+      border-radius:10px;
+      color:white;
+      box-shadow:var(--card-shadow);
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      justify-content:center;
+      cursor:pointer;
+      min-height:88px;
+    }
+    .stat-card h3{font-size:.85rem;margin:0;opacity:.95}
+    .stat-card .number{font-size:1.6rem;font-weight:800}
+
+    /* Form layout */
+    .form-wrap{
+      background:linear-gradient(180deg,#fff,#fbfbff);
+      border-radius:10px;
+      padding:16px;
+      box-shadow: 0 8px 30px rgba(102,118,200,0.04);
+      border:1px solid #f1f3fb;
+    }
+
+    .form-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:12px 16px;
+      align-items:start;
+    }
+    .form-grid .full { grid-column: 1 / -1; }
+
+    .card-section{
+      background:linear-gradient(90deg,#ffffff,#fbfbff);
+      border-radius:8px;
+      padding:12px;
+      border:1px solid #f0f2fb;
+    }
+    .card-section h4{margin:0 0 10px;font-size:1rem;color:#2b3a67}
+
+    label{display:block;font-weight:700;font-size:.88rem;color:#2b3a67;margin-bottom:6px}
+    input[type="text"], input[type="date"], input[type="number"], input[type="email"], select, textarea{
+      width:100%;
+      padding:9px 10px;
+      border-radius:8px;
+      border:1px solid #e9eef8;
+      background:white;
+      font-size:.95rem;
+      color:#222;
+    }
+    textarea{min-height:84px; resize:vertical}
+
+    .muted { color:var(--muted); font-weight:500; font-size:.9rem; margin-top:6px }
+
+    .submit-row{
+      display:flex;
+      justify-content:flex-end;
+      gap:12px;
+      margin-top:12px;
+      align-items:center;
+    }
+
+    .btn {
+      padding:10px 16px;
+      border-radius:8px;
+      border:0;
+      color:white;
+      font-weight:800;
+      cursor:pointer;
+      box-shadow: 0 8px 18px rgba(102,118,200,0.08);
+    }
+    .btn.primary{ background: linear-gradient(90deg,var(--bg-1),var(--bg-2)); }
+    .btn.ghost{ background:transparent;color:var(--muted);border:1px solid #eef2f7;font-weight:700; padding:8px 14px; border-radius:8px; }
+
+    table{ width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.04); }
+    th{ background:linear-gradient(135deg,var(--bg-1),var(--bg-2)); color:white; padding:10px; text-align:left; font-weight:700; font-size:.85rem; }
+    td{ padding:10px; border-bottom:1px solid #eef2f3; vertical-align:middle; font-size:.95rem; }
+    .status-badge{ padding:6px 12px; border-radius:18px; color:white; display:inline-block; font-weight:700; }
+
+    .status-badge.pending{ background:#f5576c } 
+    .status-badge.reviewing{ background:#ffc107; color:#333 } 
+    .status-badge.clarification{ background:#fa709a } 
+    .status-badge.vetting{ background:#4facfe } 
+    .status-badge.completed{ background:#8a2be2 } 
+    .status-badge.signing{ background:#ff5733 } 
+    .status-badge.closed{ background:#43e97b }
+
+    .status-badge.courier{ background: linear-gradient(90deg,#ff9a9e,#fecfef); color:#222; }
+    .status-badge.received-csm{ background: linear-gradient(90deg,#a1c4fd,#c2e9fb); color:#0b3b6f; }
+    .status-badge.sent-tenant{ background: linear-gradient(90deg,#fddb92,#d1fdff); color:#4a2b0f; }
+    .status-badge.received-tenant{ background: linear-gradient(90deg,#c7f9cc,#9ef5a9); color:#0a3b12; }
+
+    .action-btn{ padding:8px 10px; border-radius:8px; border:0; color:white; font-weight:700; cursor:pointer; }
+    .action-btn.view{ background:#2d6cdf } .action-btn.submit{ background:#198754 }
+
+    .modal{ display:none; position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center; }
+    .modal.active{ display:flex; }
+    .modal-content{ background:#fff; padding:16px; border-radius:10px; width:92%; max-width:780px; max-height:80vh; overflow:auto; }
+
+    @media (max-width:980px){
+      .form-grid{ grid-template-columns: 1fr; }
+      .submit-row{ flex-direction:column-reverse; align-items:stretch; }
+    }
+    .attachments-list a{ display:inline-block; margin-right:8px; margin-bottom:6px; text-decoration:none; color:var(--bg-1); background:#f6f7ff; padding:6px 8px; border-radius:6px; border:1px solid #eef2f7; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📋 Agreement Tracker Dashboard</h1>
+      <p>Manage and track agreements. Use Workflow tab to change statuses.</p>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Main Tabs">
+      <button class="tab-button active" data-tab="dashboard">Dashboard</button>
+      <button class="tab-button" data-tab="entry">Add New Agreement</button>
+      <button class="tab-button" data-tab="workflow">Workflow Management</button>
+      <button class="tab-button" data-tab="details">All Details</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="tab-content active">
+      <h2 style="margin:6px 0 12px">Overview</h2>
+      <div id="summaryCounts" class="stats-grid"></div>
+      <div id="filteredResults"></div>
+    </div>
+
+    <!-- ENTRY: full form -->
+    <div id="entry" class="tab-content">
+      <h2 style="margin:6px 0 12px">Add New Agreement</h2>
+      <div class="form-wrap">
+        <form id="agreementForm">
+          <div class="form-grid">
+
+            <div class="card-section full">
+              <h4>Basic Details</h4>
+              <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:10px; margin-top:10px">
+                <div>
+                  <label for="SlNo">SlNo *</label>
+                  <input id="SlNo" name="SlNo" type="text" placeholder="e.g., AGR-2025-001" required />
+                </div>
+                <div>
+                  <label for="Licensee">Licensee</label>
+                  <input id="Licensee" name="Licensee" type="text" placeholder="Licensee / Company" />
+                </div>
+                <div>
+                  <label for="RegType">RegType</label>
+                  <input id="RegType" name="RegType" type="text" placeholder="Registration Type" />
+                </div>
+              </div>
+            </div>
+
+            <div class="card-section">
+              <h4>Location & Unit</h4>
+              <div style="display:grid; gap:8px">
+                <label for="LLAType">LLAType</label>
+                <input id="LLAType" name="LLAType" type="text" placeholder="Type of LLA" />
+                <label for="Brand">Brand</label>
+                <input id="Brand" name="Brand" type="text" placeholder="Brand name" />
+                <label for="Floor">Floor</label>
+                <input id="Floor" name="Floor" type="text" placeholder="e.g., Ground" />
+                <label for="Unit">Unit</label>
+                <input id="Unit" name="Unit" type="text" placeholder="e.g., G-01" />
+              </div>
+            </div>
+
+            <div class="card-section">
+              <h4>Contacts</h4>
+              <div style="display:grid; gap:8px">
+                <label for="Signatory">Signatory</label>
+                <input id="Signatory" name="Signatory" type="text" />
+                <label for="ContactPerson">ContactPerson</label>
+                <input id="ContactPerson" name="ContactPerson" type="text" />
+                <label for="ContactNumber">ContactNumber</label>
+                <input id="ContactNumber" name="ContactNumber" type="text" />
+                <label for="ContactEmail">ContactEmail</label>
+                <input id="ContactEmail" name="ContactEmail" type="email" />
+              </div>
+            </div>
+
+            <div class="card-section">
+              <h4>Dates & Period</h4>
+              <div style="display:grid; gap:8px">
+                <label for="ReceiptDate">ReceiptDate</label>
+                <input id="ReceiptDate" name="ReceiptDate" type="date" />
+                <label for="LeaseStartDate">LeaseStartDate</label>
+                <input id="LeaseStartDate" name="LeaseStartDate" type="date" />
+                <label for="LeaseEndDate">LeaseEndDate</label>
+                <input id="LeaseEndDate" name="LeaseEndDate" type="date" />
+                <label for="ContractPeriod">ContractPeriod</label>
+                <input id="ContractPeriod" name="ContractPeriod" type="text" />
+              </div>
+            </div>
+
+            <div class="card-section">
+              <h4>Financials (core)</h4>
+              <div style="display:grid; gap:8px">
+                <label for="RevenueShare">Revenue Share</label>
+                <input id="RevenueShare" name="Revenue Share" type="text" placeholder="e.g., 10%" />
+
+                <label for="RentAmount">Monthly License Fee-1st year</label>
+                <input id="Monthly1" name="Monthly License Fee-1st year" type="text" />
+
+                <label for="Monthly2">Monthly-License Fee-2nd year</label>
+                <input id="Monthly2" name="Monthly-License Fee-2nd year" type="text" />
+
+                <label for="Monthly3">Monthly-License Fee-3rd Year</label>
+                <input id="Monthly3" name="Monthly-License Fee-3rd Year" type="text" />
+
+                <label for="Escalation">Escalation</label>
+                <input id="Escalation" name="Escalation" type="text" placeholder="e.g., 5% per annum" />
+              </div>
+            </div>
+
+            <div class="card-section">
+              <h4>Financials (rates & CAM / marketing)</h4>
+              <div style="display:grid; gap:8px">
+                <label for="Rate1">Rate/Sft-1st year</label>
+                <input id="Rate1" name="Rate/Sft-1st year" type="text" />
+
+                <label for="Rate2">Rate/Sft-2nd year</label>
+                <input id="Rate2" name="Rate/Sft-2nd year" type="text" />
+
+                <label for="Rate3">Rate/Sft-3rd year</label>
+                <input id="Rate3" name="Rate/Sft-3rd year" type="text" />
+
+                <label for="Rate4">Rate/Sft-4th year onwards</label>
+                <input id="Rate4" name="Rate/Sft-4th year onwards" type="text" />
+
+                <label for="CAMperSqft">CAM Fee-Per sqft</label>
+                <input id="CAMperSqft" name="CAM Fee-Per sqft" type="text" />
+
+                <label for="CAMFee">CAM Fee</label>
+                <input id="CAMFee" name="CAM Fee" type="text" />
+
+                <label for="EscalationCAM">Escalation-CAM</label>
+                <input id="EscalationCAM" name="Escalation-CAM" type="text" />
+
+                <label for="MarketingFee">Marketing Fee</label>
+                <input id="MarketingFee" name="Marketing Fee" type="text" />
+
+                <label for="EscalationMarketing">Escalation Marketing</label>
+                <input id="EscalationMarketing" name="Escalation Marketing" type="text" />
+              </div>
+            </div>
+
+            <div class="card-section">
+              <h4>Fit-out & other fees</h4>
+              <div style="display:grid; gap:8px">
+                <label for="FreeFitout">Free Fit-out Period</label>
+                <input id="FreeFitout" name="Free Fit-out Period" type="text" placeholder="e.g., 30 days" />
+
+                <label for="CAMFitoutStart">CAM Fit-out Fee Commencement Date</label>
+                <input id="CAMFitoutStart" name="CAM Fit-out Fee Commencement Date" type="date" />
+              </div>
+            </div>
+
+            <div class="card-section full">
+              <h4>Area & Specs</h4>
+              <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:10px; margin-top:6px">
+                <div>
+                  <label for="CarpetArea">CarpetArea</label>
+                  <input id="CarpetArea" name="CarpetArea" type="number" />
+                </div>
+                <div>
+                  <label for="ChargeableArea">ChargeableArea</label>
+                  <input id="ChargeableArea" name="ChargeableArea" type="number" />
+                </div>
+                <div>
+                  <label for="LockInPeriod">LockInPeriod</label>
+                  <input id="LockInPeriod" name="LockInPeriod" type="text" />
+                </div>
+              </div>
+            </div>
+
+            <div class="card-section full">
+              <h4>Documents & Notes</h4>
+              <div style="display:grid; gap:8px">
+                <label for="AvailableDocuments">AvailableDocuments</label>
+                <textarea id="AvailableDocuments" name="AvailableDocuments"></textarea>
+                <label for="DocumentRequired">DocumentRequired</label>
+                <textarea id="DocumentRequired" name="DocumentRequired"></textarea>
+                <label for="Comments">Comments</label>
+                <textarea id="Comments" name="Comments"></textarea>
+
+                <label for="Attachment" style="margin-top:8px">Attachments (pdf/image/zip/rar/7z). You can select multiple files.</label>
+                <input id="Attachment" name="Attachment" type="file" accept="application/pdf,image/*,application/zip,application/x-rar-compressed,.zip,.rar,.7z" multiple />
+                <p class="muted">Name the file before upload Eg: Brand Name_Company Name</p>
+              </div>
+            </div>
+
+            <div class="card-section full">
+              <h4>Additional Metadata</h4>
+              <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:10px;">
+                <div><label for="AgreementSource">AgreementSource</label><input id="AgreementSource" name="AgreementSource" type="text" /></div>
+                <div><label for="InternalRef">InternalRef</label><input id="InternalRef" name="InternalRef" type="text" /></div>
+                <div><label for="Tags">Tags</label><input id="Tags" name="Tags" type="text" /></div>
+              </div>
+              <p class="muted">Optional</p>
+            </div>
+
+          </div>
+
+          <div class="submit-row">
+            <button type="button" class="btn ghost" onclick="document.getElementById('agreementForm').reset()">Reset</button>
+            <button type="submit" class="btn primary">✨ Submit Agreement (Pending with Head office)</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- WORKFLOW -->
+    <div id="workflow" class="tab-content">
+      <h2 style="margin:6px 0 12px">Workflow Management</h2>
+      <div id="workflowTable"></div>
+    </div>
+
+    <!-- DETAILS -->
+    <div id="details" class="tab-content">
+      <h2 style="margin:6px 0 12px">All Details</h2>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:700;color:#333">Export / View</div>
+        <div>
+          <button id="exportBtn" class="btn ghost" style="color:var(--accent);border-color:rgba(102,126,234,0.2)">Export CSV</button>
+        </div>
+      </div>
+      <div style="overflow:auto">
+        <table id="detailsTable">
+          <thead>
+            <tr>
+              <th>SlNo</th><th>Licensee</th><th>Status</th><th>Brand</th><th>Unit</th><th>ReceiptDate</th><th>LastUpdated</th><th>Attachments</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal: history -->
+  <div id="statusModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h3 id="modalTitle">History</h3>
+        <button onclick="closeModal()" class="btn ghost" style="color:var(--muted)">Close</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Export modal -->
+  <div id="exportModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h3>Select columns to export</h3>
+        <button onclick="closeExportModal()" class="btn ghost" style="color:var(--muted)">Close</button>
+      </div>
+      <div id="columnsContainer" style="max-height:360px;overflow:auto;padding:8px;border:1px solid #eee;border-radius:6px"></div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+        <label><input type="checkbox" id="selectAllCols" /> Select all</label>
+        <button id="doExport" class="btn primary">Download CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  const API_URL = "https://script.google.com/macros/s/AKfycby_KhPlMmxz8MEF4izb7RH9S5TQ4yYzBHTq-kqKZuX18u6DBHiNlRtLJEDF6VuhM52Cug/exec";
+  const WORKFLOW_STAGES = [
+    'Pending with Head office',
+    'Reviewing',
+    'Clarification Pending',
+    'Vetting',
+    'Vetting Completed',
+    'Sent for Signing to HO',
+    'Courierred to CSM',
+    'Received at CSM',
+    'Sent to Tenant for Signing',
+    'Received from Tenant',
+    'Closed'
+  ];
+
+  // map common variants to canonical stage name (helps when sheet contains older values)
+  const STATUS_ALIASES = {
+    'Sent for Signing': 'Sent for Signing to HO',
+    'Sent for signing': 'Sent for Signing to HO',
+    'Sent For Signing': 'Sent for Signing to HO'
+  };
+
+  const STAGE_GRADIENTS = {
+    'Pending with Head office': 'linear-gradient(90deg,#f093fb,#f5576c)',
+    'Reviewing': 'linear-gradient(90deg,#ffd89b,#ffc107)',
+    'Clarification Pending': 'linear-gradient(90deg,#ffa647,#fa709a)',
+    'Vetting': 'linear-gradient(90deg,#4facfe,#00f2fe)',
+    'Vetting Completed': 'linear-gradient(90deg,#a8a8ff,#8a2be2)',
+    'Sent for Signing to HO': 'linear-gradient(90deg,#ff9966,#ff5733)',
+    'Courierred to CSM': 'linear-gradient(90deg,#ff9a9e,#fecfef)',
+    'Received at CSM': 'linear-gradient(90deg,#a1c4fd,#c2e9fb)',
+    'Sent to Tenant for Signing': 'linear-gradient(90deg,#fddb92,#d1fdff)',
+    'Received from Tenant': 'linear-gradient(90deg,#c7f9cc,#9ef5a9)',
+    'Closed': 'linear-gradient(90deg,#43e97b,#38f9d7)'
+  };
+
+  let lastFetchedData = [];
+
+  function normalizeStatus(s) {
+    if (!s && s !== '') return s;
+    const t = String(s).trim();
+    if (STATUS_ALIASES[t]) return STATUS_ALIASES[t];
+    return t;
+  }
+
+  function jsonpFetch(action, data = null, timeout = 9000) {
+    return new Promise((resolve, reject) => {
+      const cb = '__gs_cb_' + Math.random().toString(36).slice(2,12);
+      const script = document.createElement('script');
+      const params = new URLSearchParams();
+      params.set('action', action);
+      if (data !== null) params.set('data', typeof data === 'string' ? data : JSON.stringify(data));
+      params.set('callback', cb);
+      params.set('_cb', Date.now().toString());
+      let timer = setTimeout(() => cleanup() || reject(new Error('JSONP timeout')), timeout);
+      function cleanup(){ clearTimeout(timer); try{ delete window[cb]; }catch(e){ window[cb] = undefined; } if (script.parentNode) script.parentNode.removeChild(script); }
+      window[cb] = (resp) => { cleanup(); resolve(resp); };
+      script.onerror = () => { cleanup(); reject(new Error('JSONP script error')); };
+      script.src = API_URL + '?' + params.toString();
+      document.head.appendChild(script);
+    });
+  }
+
+  async function fetchData(action, data = null) {
+    if (action === 'getData') {
+      try {
+        const r = await jsonpFetch(action, null, 9000);
+        return r;
+      } catch (err) {
+        console.warn('JSONP getData failed, trying fetch GET fallback:', err);
+        const res = await fetch(API_URL + '?action=getData&_cb=' + Date.now(), { method: 'GET' });
+        return await res.json();
+      }
+    }
+
+    const body = new URLSearchParams();
+    body.append('action', action);
+    if (data !== null) body.append('data', typeof data === 'string' ? data : JSON.stringify(data));
+    body.append('_cb', Date.now().toString());
+
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+        body: body.toString()
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(()=>'');
+        throw new Error('Network response not ok: ' + res.status + ' ' + txt);
+      }
+      return await res.json();
+    } catch (err) {
+      console.warn('Primary POST failed, attempting iframe fallback (write-only):', err);
+      const form = document.createElement('form');
+      form.style.display = 'none';
+      form.method = 'POST';
+      form.action = API_URL;
+      const a = document.createElement('input'); a.name = 'action'; a.value = action; form.appendChild(a);
+      const d = document.createElement('input'); d.name = 'data'; d.value = JSON.stringify(data || {}); form.appendChild(d);
+      let iframe = document.getElementById('submitFrame');
+      if (!iframe) { iframe = document.createElement('iframe'); iframe.name = 'submitFrame'; iframe.id = 'submitFrame'; iframe.style.display='none'; document.body.appendChild(iframe); }
+      form.target = 'submitFrame';
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+      return { success: true, note: 'Submitted via iframe fallback (no confirm).' };
+    }
+  }
+
+  // Tab wiring
+  function activateTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+    document.querySelectorAll('.tab-button').forEach(tb => tb.classList.remove('active'));
+    const tcontent = document.getElementById(tabId);
+    if (tcontent) tcontent.classList.add('active');
+    const tb = document.querySelector('.tab-button[data-tab="' + tabId + '"]');
+    if (tb) tb.classList.add('active');
+    if (tabId === 'workflow') loadWorkflowManagement();
+    if (tabId === 'details') loadDetails();
+    if (tabId === 'dashboard') loadDashboard();
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('.tab-button').forEach(btn => {
+      btn.addEventListener('click', () => activateTab(btn.getAttribute('data-tab')));
+    });
+
+    document.getElementById('agreementForm').addEventListener('submit', handleAgreementSubmit);
+    document.getElementById('exportBtn').addEventListener('click', showExportModal);
+
+    // initial load
+    loadDashboard();
+  });
+
+  // fileToBase64 & submit unchanged (kept for brevity)
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = function() {
+        const res = reader.result;
+        const m = String(res).match(/^data:(.*);base64,(.*)$/);
+        if (m) resolve({ base64: m[2], mime: m[1] });
+        else resolve({ base64: '', mime: file.type || 'application/octet-stream' });
+      };
+      reader.onerror = () => reject(new Error('File read error'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleAgreementSubmit(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const prev = btn.textContent;
+    btn.textContent = '⏳ Submitting...'; btn.disabled = true;
+
+    try {
+      const fm = new FormData(e.target);
+      const data = {
+        Status: 'Pending with Head office',
+        LastUpdated: new Date().toISOString().split('T')[0],
+        StatusHistory: JSON.stringify([{ status:'Pending with Head office', date:new Date().toISOString(), comments:'Created via UI' }])
+      };
+      fm.forEach((v,k) => { if (k !== 'Attachment') data[k] = v; });
+      const fileInput = document.getElementById('Attachment');
+      if (fileInput && fileInput.files && fileInput.files.length > 0) {
+        const files = Array.from(fileInput.files);
+        const maxBytesPerFile = 30 * 1024 * 1024;
+        for (const f of files) { if (f.size > maxBytesPerFile) { alert('Attachment "' + f.name + '" is too large. Please attach files smaller than 30MB each.'); btn.textContent = prev; btn.disabled = false; return; } }
+        const attachments = await Promise.all(files.map(async (file) => { const b = await fileToBase64(file); return { name: file.name, mime: b.mime || file.type || 'application/octet-stream', base64: b.base64, size: file.size }; }));
+        data.Attachments = JSON.stringify(attachments); data.AttachmentCount = attachments.length;
+      }
+      const res = await fetchData('addRow', data);
+      if (res && (res.success === true || res.row)) { alert('✅ Agreement added'); e.target.reset(); await loadDashboard(); await loadDetails(); } else { if (res && res.note && res.note.includes('iframe')) { alert('✅ Submitted (iframe fallback). Data will refresh shortly.'); setTimeout(()=>{ loadDashboard(); loadDetails(); }, 1200); } else { const msg = (res && (res.error || res.message)) ? (res.error || res.message) : JSON.stringify(res); alert('⚠️ Add failed: ' + msg); } }
+    } catch (err) { console.error('Submit error', err); alert('⚠️ Error: ' + (err.message || err)); } finally { btn.textContent = prev; btn.disabled = false; }
+  }
+
+  // Dashboard loader: counts use normalized statusesunction loadDashboard() {
+    const container = document.getElementById('summaryCounts');
+    container.innerHTML = '<div style="padding:18px;color:var(--muted)">Loading dashboard...</div>';
+    try {
+      fetchData('getData').then(res => {
+        const rows = (res && res.data) ? res.data : [];
+        lastFetchedData = rows;
+        const counts = {};
+        WORKFLOW_STAGES.forEach(s => counts[s] = 0);
+        rows.forEach(r => { const s = normalizeStatus(r.Status || ''); if (counts[s] !== undefined) counts[s]++; else counts[s] = 1; });
+        const totalCard = `<div class="stat-card" data-status="all" style="background:linear-gradient(90deg,#4e54c8,#8f94fb)"><h3>Total Agreements</h3><div class="number">${rows.length}</div></div>`;
+        const stageCards = WORKFLOW_STAGES.map(stage => { const grad = STAGE_GRADIENTS[stage] || 'linear-gradient(90deg,#ddd,#bbb)'; return `<div class="stat-card" data-status="${stage}" style="background:${grad}"><h3>${stage}</h3><div class="number">${counts[stage] || 0}</div></div>`; }).join('');
+        container.innerHTML = totalCard + stageCards;
+        document.querySelectorAll('.stat-card').forEach(card => { card.addEventListener('click', () => { const status = card.getAttribute('data-status') || 'all'; filterByStatus(status); }); });
+      }).catch(err => { console.error('Dashboard error', err); container.innerHTML = `<div style="padding:18px;color:var(--muted)">Unable to load dashboard: ${err.message || err}</div>`; });
+    } catch (err) { console.error('Dashboard error', err); container.innerHTML = `<div style="padding:18px;color:var(--muted)">Unable to load dashboard: ${err.message || err}</div>`; }
+  }
+
+  function createUrlFromBase64(base64, mime) { try { const byteString = atob(base64); const ia = new Uint8Array(byteString.length); for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i); const blob = new Blob([ia], { type: mime }); const url = URL.createObjectURL(blob); return { url, revoke: true }; } catch (e) { return { url: 'data:' + mime + ';base64,' + base64, revoke: false }; } }
+
+  function renderAttachmentsForRow(row) { try { let attachments = null; if (row.Attachments) { if (typeof row.Attachments === 'string') { try { attachments = JSON.parse(row.Attachments); } catch(e) { attachments = null; } } else if (Array.isArray(row.Attachments)) attachments = row.Attachments; } if (!attachments && row.AttachmentUrls) { if (typeof row.AttachmentUrls === 'string') { try { attachments = JSON.parse(row.AttachmentUrls); } catch(e) { attachments = [row.AttachmentUrls]; } } else if (Array.isArray(row.AttachmentUrls)) attachments = row.AttachmentUrls; } if (!attachments && row.AttachmentUrl) attachments = [ row.AttachmentUrl ]; if (!attachments && row.AttachmentBase64 && row.AttachmentName) { attachments = [{ name: row.AttachmentName, mime: row.AttachmentMime || 'application/octet-stream', base64: row.AttachmentBase64 }]; } if (!attachments || attachments.length === 0) return '<div style="color:var(--muted)">—</div>'; const parts = []; attachments.forEach((a, idx) => { if (!a) return; if (typeof a === 'string') { const safeName = a.split('/').pop() || ('file-' + idx); parts.push(`<a href="${a}" target="_blank" rel="noopener noreferrer" download="${safeName}">${safeName}</a>`); return; } const name = a.name || (a.url ? a.url.split('/').pop() : 'file-' + idx); if (a.url) { parts.push(`<a href="${a.url}" target="_blank" rel="noopener noreferrer" download="${name}">${name}</a>`); } else if (a.base64) { const tmp = createUrlFromBase64(a.base64, a.mime || 'application/octet-stream'); parts.push(`<a href="${tmp.url}" target="_blank" rel="noopener noreferrer" download="${name}">${name}</a>`); if (tmp.revoke) setTimeout(()=>{ try{ URL.revokeObjectURL(tmp.url); }catch(e){} }, 60000); } else { parts.push(`<span title="No downloadable URL">${name}</span>`); } }); return `<div class="attachments-list">${parts.join('')}</div>`; } catch (e) { return '<div style="color:var(--muted)">—</div>'; } }
+
+  async function filterByStatus(status) { const cont = document.getElementById('filteredResults'); cont.innerHTML = '<div style="padding:14px;color:var(--muted)">Loading results...</div>'; try { if (!lastFetchedData || lastFetchedData.length === 0) { const r = await fetchData('getData'); lastFetchedData = (r && r.data) ? r.data : (Array.isArray(r) ? r : []); } const filtered = (!status || status === 'all') ? lastFetchedData : lastFetchedData.filter(r => normalizeStatus(r.Status) === status); if (!filtered || filtered.length === 0) { cont.innerHTML = '<div style="padding:18px;color:var(--muted)">No agreements found.</div>'; return; } const rowsHtml = filtered.map(r => { const enc = encodeURIComponent(r.SlNo || ''); return `<tr>
+          <td>${r.SlNo || '-'}</td>
+          <td>${(r.Licensee || '-')}</td>
+          <td>${getStatusBadge(normalizeStatus(r.Status))}</td>
+          <td>${r.Brand || '-'}</td>
+          <td>${r.Unit || '-'}</td>
+          <td>${r.ReceiptDate || '-'}</td>
+          <td>${r.LastUpdated || '-'}</td>
+          <td>${renderAttachmentsForRow(r)}</td>
+          <td><button class="action-btn view" onclick="viewHistoryBySlNo('${enc}')">View</button></td>
+        </tr>`; }).join(''); cont.innerHTML = `<div style="overflow:auto"><table><thead><tr><th>SlNo</th><th>Licensee</th><th>Status</th><th>Brand</th><th>Unit</th><th>ReceiptDate</th><th>LastUpdated</th><th>Attachments</th><th>Actions</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`; } catch (err) { console.error('filter error', err); cont.innerHTML = `<div style="padding:18px;color:var(--muted)">Error: ${err.message || err}</div>`; } }
+
+  function getStatusBadge(status) { if (!status) return ''; const map = { 'Pending with Head office':'pending', 'Reviewing':'reviewing', 'Clarification Pending':'clarification', 'Vetting':'vetting', 'Vetting Completed':'completed', 'Sent for Signing to HO':'signing', 'Courierred to CSM':'courier', 'Received at CSM':'received-csm', 'Sent to Tenant for Signing':'sent-tenant', 'Received from Tenant':'received-tenant', 'Closed':'closed' }; const cls = map[status] || 'pending'; return `<span class="status-badge ${cls}">${status}</span>`; }
+
+  function renderStatusControlsForRow(slNo, currentStatus) { const enc = encodeURIComponent(slNo || ''); const selectId = `status-select-${enc}`; const commentId = `status-comment-${enc}`; const btnId = `status-submit-${enc}`; const options = WORKFLOW_STAGES.map(s => `<option value="${s}" ${s===currentStatus?'selected':''}>${s}</option>`).join(''); return `<div style="display:flex;gap:8px;align-items:center">
+      <select id="${selectId}">${options}</select>
+      <input id="${commentId}" placeholder="Optional comment" style="padding:8px;border-radius:6px;border:1px solid #eee" />
+      <button id="${btnId}" class="action-btn submit" onclick="changeStatusBySlNo('${enc}','${selectId}','${commentId}','${btnId}')">Submit</button>
+    </div>`; }
+
+  async function loadWorkflowManagement() { const container = document.getElementById('workflowTable'); container.innerHTML = '<div style="padding:14px;color:var(--muted)">Loading workflow...</div>'; try { if (!lastFetchedData || lastFetchedData.length === 0) { const r = await fetchData('getData'); lastFetchedData = (r && r.data) ? r.data : (Array.isArray(r) ? r : []); } const groups = {}; lastFetchedData.forEach(row => { const s = normalizeStatus(row.Status || 'Pending with Head office'); if (!groups[s]) groups[s] = []; groups[s].push(row); }); const sections = WORKFLOW_STAGES.map(stage => { const items = groups[stage] || []; const rowsHtml = items.map(r => { const enc = encodeURIComponent(r.SlNo || ''); const historyBtn = `<button class="action-btn view" onclick="viewHistoryBySlNo('${enc}')">View</button>`; const controls = renderStatusControlsForRow(r.SlNo || '', r.Status || ''); return `<tr>
+            <td>${r.SlNo || '-'}</td>
+            <td>${r.Licensee || '-'}</td>
+            <td>${r.Unit || '-'}</td>
+            <td>${r.LastUpdated || '-'}</td>
+            <td>${getStatusBadge(normalizeStatus(r.Status))}</td>
+            <td>${renderAttachmentsForRow(r)} ${historyBtn} ${controls}</td>
+          </tr>`; }).join(''); return `<h4 style="margin:12px 0">${stage} (${items.length})</h4>
+          <div style="overflow:auto">
+            <table style="margin-bottom:12px"><thead><tr><th>SlNo</th><th>Licensee</th><th>Unit</th><th>LastUpdated</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rowsHtml||`<tr><td colspan="6" style="padding:12px;color:var(--muted)">No agreements in this stage.</td></tr>`}</tbody></table>
+          </div>`; }).join(''); container.innerHTML = sections; } catch (err) { console.error('workflow load error', err); container.innerHTML = `<div style="padding:14px;color:var(--muted)">Error loading workflow: ${err.message || err}</div>`; } }
+
+  async function pollForStatusChange(slNo, expectedStatus, intervalMs = 1000, timeoutMs = 10000) { const start = Date.now(); while (Date.now() - start < timeoutMs) { try { const res = await fetchData('getData'); const rows = (res && res.data) ? res.data : (Array.isArray(res) ? res : []); const match = rows.find(r => String((r.SlNo || '')).trim() === String(slNo).trim()); if (match && (normalizeStatus(match.Status) === expectedStatus)) return { ok: true, row: match }; } catch (err) { } await new Promise(r => setTimeout(r, intervalMs)); } return { ok: false }; }
+
+  async function changeStatusBySlNo(encodedSlNo, selectId, commentId, btnId) { const slNo = decodeURIComponent(encodedSlNo); const select = document.getElementById(selectId); const commentEl = document.getElementById(commentId); const btn = document.getElementById(btnId); if (!select) { alert('Selector not found'); return; } const newStatus = select.value; const comment = commentEl ? (commentEl.value || 'Status changed') : 'Status changed'; try { if (!lastFetchedData || lastFetchedData.length === 0) { const r = await fetchData('getData'); lastFetchedData = (r && r.data) ? r.data : (Array.isArray(r) ? r : []); } const agreement = lastFetchedData.find(r => String((r.SlNo || '')).trim() === String(slNo).trim()); if (!agreement) { alert('Agreement not found locally. Reloading.'); await loadDashboard(); await loadWorkflowManagement(); return; } if ((normalizeStatus(agreement.Status) || '') === newStatus) { alert('Status already ' + newStatus); return; } if (btn) { btn.disabled = true; btn.textContent = '⏳ Updating...'; } let statusHistory = []; try { statusHistory = agreement.StatusHistory ? JSON.parse(agreement.StatusHistory) : []; } catch(e) { statusHistory = []; } statusHistory.push({ status: newStatus, date: new Date().toISOString(), action: 'Manual status change', comments: comment }); const updatedData = { ...agreement, Status: newStatus, LastUpdated: new Date().toISOString().split('T')[0], StatusHistory: JSON.stringify(statusHistory) }; console.info('Sending updateRow payload (client) for SlNo=', slNo, updatedData); const resp = await fetchData('updateRow', updatedData); console.info('updateRow immediate response:', resp); if (resp && (resp.success === true || resp.row)) { await new Promise(r => setTimeout(r, 700)); await loadDashboard(); await loadWorkflowManagement(); await loadDetails(); alert('✅ Status updated to: ' + newStatus); return; } if (resp && resp.success === 'submitted_via_iframe') { const pollRes = await pollForStatusChange(slNo, newStatus, 1000, 15000); if (pollRes.ok) { await loadDashboard(); await loadWorkflowManagement(); await loadDetails(); alert('✅ Status updated (confirmed after iframe fallback) to: ' + newStatus); } else { alert('⚠️ Update likely submitted but not confirmed within timeout. Please check the sheet directly or run again.'); } return; } const errMsg = (resp && (resp.error || resp.message)) ? (resp.error || resp.message) : JSON.stringify(resp || {}); console.error('updateRow response shows failure:', errMsg); alert('⚠️ Update failed: ' + errMsg); } catch (err) { console.error('changeStatusBySlNo exception:', err); alert('⚠️ Error updating status: ' + (err.message || err)); } finally { if (btn) { btn.disabled = false; btn.textContent = 'Submit'; } } }
+
+  async function loadDetails() { const tbody = document.querySelector('#detailsTable tbody'); tbody.innerHTML = '<tr><td colspan="9" style="padding:12px;color:var(--muted)">Loading details...</td></tr>'; try { if (!lastFetchedData || lastFetchedData.length === 0) { const res = await fetchData('getData'); lastFetchedData = (res && res.data) ? res.data : (Array.isArray(res) ? res : []); } if (!lastFetchedData || lastFetchedData.length === 0) { tbody.innerHTML = '<tr><td colspan="9" style="padding:12px;color:var(--muted)">No agreements available</td></tr>'; return; } const html = lastFetchedData.map(r => { const enc = encodeURIComponent(r.SlNo || ''); return `<tr>
+          <td>${r.SlNo || '-'}</td>
+          <td>${r.Licensee || '-'}</td>
+          <td>${getStatusBadge(normalizeStatus(r.Status))}</td>
+          <td>${r.Brand || '-'}</td>
+          <td>${r.Unit || '-'}</td>
+          <td>${r.ReceiptDate || '-'}</td>
+          <td>${r.LastUpdated || '-'}</td>
+          <td>${renderAttachmentsForRow(r)}</td>
+          <td><button class="action-btn view" onclick="viewHistoryBySlNo('${enc}')">View</button></td>
+        </tr>`; }).join(''); tbody.innerHTML = html; } catch (err) { console.error('loadDetails error', err); tbody.innerHTML = `<tr><td colspan="9" style="padding:12px;color:var(--muted)">Error: ${err.message || err}</td></tr>`; } }
+
+  function viewHistoryBySlNo(encodedSlNo) { const slNo = decodeURIComponent(encodedSlNo); const agreement = lastFetchedData.find(r => String(r.SlNo || '').trim() === String(slNo || '').trim()); if (!agreement) { alert('Agreement not found locally'); return; } let history = []; try { history = agreement.StatusHistory ? JSON.parse(agreement.StatusHistory) : []; } catch(e) { history = []; } document.getElementById('modalTitle').textContent = `History: ${agreement.SlNo || '-'} - ${agreement.Licensee || '-'}`; if (!history.length) { document.getElementById('modalBody').innerHTML = '<div style="padding:12px;color:var(--muted)">No history available</div>'; } else { const html = history.slice().reverse().map(h => { const d = h.date ? (new Date(h.date)).toLocaleString() : '-'; return `<div style="padding:10px;border-bottom:1px solid #f1f3fb"><div style="color:var(--muted);font-size:.9rem">📅 ${d}</div><div style="font-weight:700;margin-top:4px">${h.status}</div>${h.action?`<div style="margin-top:6px"><strong>Action:</strong> ${h.action}</div>`:''}<div style="margin-top:6px"><strong>Comments:</strong> ${h.comments||'-'}</div></div>`; }).join(''); document.getElementById('modalBody').innerHTML = html; } document.getElementById('statusModal').classList.add('active'); document.getElementById('statusModal').setAttribute('aria-hidden','false'); }
+  function closeModal(){ document.getElementById('statusModal').classList.remove('active'); document.getElementById('statusModal').setAttribute('aria-hidden','true'); }
+
+  function showExportModal() { const modal = document.getElementById('exportModal'); const container = document.getElementById('columnsContainer'); container.innerHTML = '<div style="padding:10px;color:var(--muted)">Preparing column list...</div>'; modal.classList.add('active'); modal.setAttribute('aria-hidden','false'); let headers = []; if (lastFetchedData && lastFetchedData.length > 0) { headers = Object.keys(lastFetchedData[0]); } else { headers = ['SlNo','Licensee','RegType','LLAType','Signatory','Brand','Floor','Unit','ReceiptDate','Status','StatusHistory','LastUpdated','AvailableDocuments','DocumentRequired','Comments','ContractPeriod','CarpetArea','ChargeableArea','LockInPeriod','NoticePeriod','Deposit','CAMDeposit','Revenue Share','Attachments','AttachmentUrls']; } const html = headers.map(h => { const id = 'col_' + encodeURIComponent(h); return `<label style="display:block;margin-bottom:6px"><input type="checkbox" id="${id}" data-col="${encodeURIComponent(h)}" checked /> ${h}</label>`; }).join(''); container.innerHTML = html; const selectAll = document.getElementById('selectAllCols'); if (selectAll) selectAll.checked = true; if (selectAll) selectAll.onchange = () => { container.querySelectorAll('input[type="checkbox"]').forEach(ch => ch.checked = selectAll.checked); }; document.getElementById('doExport').onclick = () => exportSelectedColumns(headers); }
+
+  function closeExportModal() { const modal = document.getElementById('exportModal'); modal.classList.remove('active'); modal.setAttribute('aria-hidden','true'); }
+
+  function escapeCsv(val) { if (val === null || val === undefined) return ''; const s = String(val); if (s.includes('"') || s.includes(',') || s.includes('
+') || s.includes('')) { return `"${s.replace(/"/g,'""')}"`; } return s; }
+
+  async function exportSelectedColumns(defaultHeaders) { try { const container = document.getElementById('columnsContainer'); const checks = Array.from(container.querySelectorAll('input[type="checkbox"]')); const selected = checks.filter(ch => ch.checked).map(ch => decodeURIComponent(ch.dataset.col || ch.getAttribute('data-col'))); if (!selected.length) { alert('Select at least one column'); return; } if (!lastFetchedData || lastFetchedData.length === 0) { const r = await fetchData('getData'); lastFetchedData = (r && r.data) ? r.data : (Array.isArray(r) ? r : []); } const headerRow = selected.join(','); const rows = lastFetchedData.map(row => selected.map(col => escapeCsv(row[col] === undefined ? '' : row[col])).join(',')); const csv = headerRow + '\r\n' + rows.join('\r\n'); const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; const now = new Date().toISOString().slice(0,10); a.download = `agreements_export_${now}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); closeExportModal(); } catch (err) { console.error('export error', err); alert('Error exporting: ' + (err.message || err)); } }
+
+  document.addEventListener('click', function(e) { const exportModal = document.getElementById('exportModal'); if (!exportModal.classList.contains('active')) return; if (!exportModal.querySelector('.modal-content').contains(e.target) && !document.getElementById('exportBtn').contains(e.target)) { closeExportModal(); } });
+  </script>
+</body>
+</html>
